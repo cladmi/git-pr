@@ -1,0 +1,100 @@
+#! /bin/bash
+
+usage() {
+    echo 'Usage: git pr [-h] [options]'
+    echo '    git pr <upstream> <pull_request>'
+    echo '        Fetch given pull request on a local branch and switch to it'
+    echo '    git pr'
+    echo '        List local pull requests branches'
+}
+
+main() {
+    if [ $# -eq 0 ]; then
+        _list_branches
+        return 0
+    elif [[ "${@#-h}" != "$@" ]]; then
+        usage
+        return 0
+    elif [ $# -ne 2 ]; then
+        usage
+        return 1
+    else
+        _checkout_pull_request "$1" "$2"
+        return 0
+    fi
+}
+
+_list_branches() {
+    git branch --list 'pr/[0-9]*/*'
+
+}
+
+_checkout_pull_request() {
+    set -e
+
+    local upstream=$1
+    local pr=$2
+
+    echo "Fetching $(git remote get-url ${upstream})[#${pr}]"
+
+    local remote="refs/pull/$pr/head"
+    git fetch -fu "${upstream}" "$remote":
+
+    local name=$(safe_name "$upstream" "$pr")
+    local pr_branch="pr/${pr}/${name}"
+    git checkout -b "$pr_branch" FETCH_HEAD
+}
+
+
+readonly PULL_REQUEST_URL="https://api.github.com/repos/%s/%s/pulls/%s"
+_pull_request_url() {
+    local owner="$1"
+    local repo="$2"
+    local number="$3"
+
+    printf "${PULL_REQUEST_URL}\n" "${owner}" "${repo}" "${number}"
+}
+
+
+# _split_github_url git@github.com:RIOT-OS/RIOT
+# _split_github_url https://github.com/RIOT-OS/RIOT.git
+# RIOT-OS RIOT
+_split_github_url() {
+    sed -e 's/.*github.com.//' -e 's/.git//' -e 's+/+ +'
+}
+
+# pull_request_url riot 1234
+# https://api.github.com/repos/RIOT-OS/RIOT/pulls/1234
+pull_request_url() {
+    local remote="$1"
+    local pr="$2"
+
+    local split=$(git remote get-url "${remote}" | _split_github_url)
+
+    # expand 'split' in two parts
+    _pull_request_url $split "${pr}"
+}
+
+
+# Keep only alpha-numerical characters
+_sanitize_title() {
+    iconv -c -f utf-8 -t ascii | \
+        sed 's/[^a-zA-Z0-9]/_/g'
+}
+
+
+# Json extract using grep and sed
+_json_extract_title() {
+    grep '"title"' | head -n 1 | sed -e 's/.*: //' -e 's/[",]//g'
+}
+
+safe_name() {
+    local remote="$1"
+    local pr="$2"
+    local url=$(pull_request_url "${remote}" "${pr}")
+    curl -s ${url} | _json_extract_title | _sanitize_title
+}
+
+
+main $@
+exit $?
