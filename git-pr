@@ -4,6 +4,8 @@ usage() {
     echo 'Usage: git pr [-h] [options]'
     echo '    git pr <upstream> <pull_request>'
     echo '        Fetch given pull request on a local branch and switch to it'
+    echo '    git pr update'
+    echo '        Update current pull request'
     echo '    git pr'
     echo '        List local pull requests branches'
 }
@@ -15,6 +17,9 @@ main() {
     elif [[ "${@#-h}" != "$@" ]]; then
         usage
         return 0
+    elif [[ $# -eq 1 ]] && [[ "${1}" = "update" ]]; then
+        _update_current_pr
+        return 1
     elif [ $# -ne 2 ]; then
         usage
         return 1
@@ -26,7 +31,21 @@ main() {
 
 _list_branches() {
     git branch --list 'pr/[^/]*/[0-9]*/*'
+}
 
+_get_current_branch() {
+    git rev-parse --abbrev-ref HEAD
+}
+
+_update_current_pr() {
+    if [[ ! $(_get_current_branch) =~ ^pr/[^/]+/[0-9]+/.*$ ]]; then
+        echo "Current branch '$(_get_current_branch)' not a PR branch" >&2
+        exit 1;
+    fi
+
+    local upstream=$(_get_current_branch | sed 's|/| |g' | cut -f 2 -d' ')
+    local pr=$(_get_current_branch | sed 's|/| |g' | cut -f 3 -d' ')
+    _checkout_pull_request "${upstream}" "${pr}"
 }
 
 _checkout_pull_request() {
