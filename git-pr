@@ -25,7 +25,7 @@ main() {
 }
 
 _list_branches() {
-    git branch --list 'pr/[0-9]*/*'
+    git branch --list 'pr/[^/]*/[0-9]*/*'
 
 }
 
@@ -38,7 +38,7 @@ _checkout_pull_request() {
     echo "Fetching $(git remote get-url ${upstream})[#${pr}]"
     local remote="refs/pull/$pr/head"
     local name=$(safe_name "$upstream" "$pr")
-    local pr_branch="pr/${pr}/${name}"
+    local pr_branch="pr/${upstream}/${pr}/${name}"
 
     git fetch -fu "${upstream}" "$remote":"${pr_branch}"
     git checkout "${pr_branch}"

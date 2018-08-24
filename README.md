@@ -7,7 +7,7 @@ Script to help using github pull requests from the command line.
 Design
 ------
 
-Pull requests are cloned to `pr/pr_number/readable_pr_description` local
+Pull requests are cloned to `pr/upstream/pr_number/readable_pr_description` local
 branches.
 There is no mechanism for security.
 
