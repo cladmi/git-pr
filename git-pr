@@ -1,7 +1,7 @@
 #! /bin/bash
 
 usage() {
-    echo 'Usage: git pr [-h] [options]'
+    echo 'Usage: git pr [-h|help] [options]'
     echo '    git pr <upstream> <pull_request>'
     echo '        Fetch given pull request on a local branch and switch to it'
     echo '    git pr update'
@@ -14,7 +14,7 @@ main() {
     if [ $# -eq 0 ]; then
         _list_branches
         return 0
-    elif [[ "${@#-h}" != "$@" ]]; then
+    elif [[ "${@#-h}" != "$@" ]] || [[ "${@#help}" != "$@" ]]; then
         usage
         return 0
     elif [[ $# -eq 1 ]] && [[ "${1}" = "update" ]]; then
